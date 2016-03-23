@@ -1,0 +1,43 @@
+<div class='matches'>
+    <ul id='matches'>
+        {% for match in matches %}
+            <li class='col-md-10'>
+                <h2>
+                    {% if match['gameMode'] == 'ARAM' %}ARAM
+                    {% elif match['gameMode'] == 'CLASSIC' %}Classic Summoner's Rift
+                    {% else %}{{ match['gameMode'] }}{% end %}
+                </h2>
+                <ul id='players'>
+                    {% for idx, player in enumerate(match['participants']) %}
+                        <li class='col-md-2 {% if idx <= 4 %}top{% else %}bottom{% end %}'>
+                        <img src="https://ddragon.leagueoflegends.com/cdn/6.5.1/img/champion/{{ champions(player['championId']) }}.png " alt="" width='100px'>
+                        
+                        <div class="summonerSpells">
+                            <img src="https://ddragon.leagueoflegends.com/cdn/6.5.1/img/spell/{{ spells(player['spell1Id']) }}.png " alt="" width='50px' class='pull-left'>
+                            <img src="https://ddragon.leagueoflegends.com/cdn/6.5.1/img/spell/{{ spells(player['spell2Id']) }}.png " alt="" width='50px'>
+                        </div>
+                        
+                        </li>
+                        {% if idx == 4   %}
+                            <h3 class='col-md-12'>VS</h3>
+                        {% end %}
+                    {% end %}
+                </ul>
+
+                <div class='matchWager row'>
+                    <form class="wagerForm" action="/make_wager" method='post' id="{{ match['gameId'] }}">
+                        <input type="hidden" name='match' value='{{ match['gameId'] }}'>
+                        Wager: <br> 100 <input type="radio" name='points' value='100'>
+                               300 <input type="radio" name='points' value='300'>
+                               {% if match['gameMode'] != 'ARAM' %}500 <input type="radio" name='points' value='500'>{% end %}
+                               <br>
+                        On Top Team to win: <input type="radio" name='team' value='Top'> <br>
+                        On Bottom Team to win: <input type="radio" name='team' value='Bottom'> <br>
+                        <input type="button" value='Wager' class='btn btn-success wagerBtn'>
+                        <b class='wagerStatus'></b>
+                    </form>
+                </div>
+            </li>
+        {% end %}
+    </ul>
+</div>

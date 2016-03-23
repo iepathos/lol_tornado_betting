@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<style>
+    .winner {
+        backgorund-color: green;
+    }
+</style>
+{% end %}
+
+{% block content %}
+    <ul>
+        {% for wager in wagers %}
+            <li class="col-md-3">
+                Draft Points: {{ wager['points'] }} <br>
+                Team: {{ wager['team'] }} <br>
+                {% if wager['settled'] %}
+                    Payout: {{ wager.get('payout') }} <br>
+                {% else %}
+                    Wager Open
+                {% end %}
+                
+
+                {% if wager.get('match_data') %}
+                    <h2>
+                        {% if wager['match_data']['gameMode'] == 'ARAM' %}ARAM
+                        {% elif wager['match_data']['gameMode'] == 'CLASSIC' %}Classic Summoner's Rift
+                        {% else %}{{ wager['match_data']['gameMode'] }}{% end %}
+                    </h2>
+                    <ul id='players'>
+                        {% for idx, player in enumerate(wager['match_data']['teams']) %}
+                            <li class='col-md-2'>
+                            <img src="http://ddragon.leagueoflegends.com/cdn/6.5.1/img/champion/{{ champions(player['championId']) }}.png " alt="" width='100px'>
+                            
+                            <div class="summonerSpells">
+                                <img src="http://ddragon.leagueoflegends.com/cdn/6.5.1/img/spell/{{ spells(player['spell1Id']) }}.png " alt="" width='50px' class='pull-left'>
+                                <img src="http://ddragon.leagueoflegends.com/cdn/6.5.1/img/spell/{{ spells(player['spell2Id']) }}.png " alt="" width='50px'>
+                            </div>
+                            
+                            </li>
+                            {% if idx == 4   %}
+                                <h3 class='col-md-12'>VS</h3>
+                            {% end %}
+                        {% end %}
+                    </ul>
+                {% end %}
+            </li>
+        {% end %}
+    </ul>
+
+{% end %}

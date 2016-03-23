@@ -1,0 +1,1 @@
+*/5 * * * * bash -c ': | PATH="$PATH:/usr/local/bin" dokku --rm run mochadick python manage.py -b'

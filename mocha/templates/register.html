@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="welcomePrompt">
+You must be 18 or older to play here.
+
+<div class='loginPrompt'><br><br>If you already registered you can just <a href="/login">login</a></div>
+
+<hr>
+
+
+What's your League of Legends summoner name? <input id='name' type="text" name="name">
+</div>
+
+
+<div class="tokenPrompt" hidden>Ok, <b id='summonerName'></b>, can you prove it?
+
+<p>Log in to your League of Legends account and set the name of your first masteries page to the following token and then click Verify below.</p>
+<div id='token'></div>
+<form action="/verify_token" method='post'>
+<input type="hidden" name='name' id='verifyTokenName'>
+<input id='verifyToken' type="button" value="Verify" class='btn btn-primary'>
+</form>
+
+</div>
+
+<div class="passwordPrompt" hidden>
+<p>Ok, we believe you!  Your summoner account is now linked, now set your password.</p>
+
+<form action="/set_password" method='post'>
+  Password: <input id='password' type="password" name='password'>
+  <br>
+  Re-Password: <input id='password1' type="password">
+  <br>
+  <input id='setPassword' type="submit" value="Set Password" class='btn btn-primary'>
+</form>
+</div>
+{% end %}
+
+{% block extra_js %}
+<script type='text/javascript'>
+    $('#name').bind("enterKey",function(e){
+      getToken();
+    });
+    $('#name').keyup(function(e){
+        if(e.keyCode == 13) {
+            $(this).trigger("enterKey");
+        }
+    });
+
+
+    $("#verifyToken").click( function() {
+        verifyToken();
+    });
+
+    function getToken() {
+        name = $('#name').val();
+        data = {
+            'name': name
+        };
+        $.ajax({
+          type: "POST",
+          url: '/get_token',
+          data: data
+        })
+        .done(function( data ) {
+            var d = JSON.parse(data);
+            if (d.status == 'success') {
+              $('#token').html(d.token);
+              var name = $('#name').val();
+              console.log('Summoner Name: ', name);
+              $('#summonerName').text(name);
+              $('#token').val(d.token);
+              $('.loginPrompt').hide();
+              $('.tokenPrompt').show();
+              $('.welcomePrompt').hide();
+              $("#name").prop('disabled', true);
+              $('#verifyTokenName').val(name);
+            } else {
+              $("#name").val("");
+              alert(d.status);
+            }
+        });
+    }
+
+    function verifyToken() {
+        name = $('#name').val();
+        data = {
+            'name': name
+        };
+        $.ajax({
+          type: "POST",
+          url: '/verify_token',
+          data: data
+        })
+        .done(function( data ) {
+            var d = JSON.parse(data);
+            console.log(d);
+            if (d.status == 'success') {
+                var name = $('#name').val();
+                $('.passwordPrompt').show();
+                $('.tokenPrompt').hide();
+            } else {
+                alert("Failed to verify token, make sure your first mastery page has its name set to the token we provided you.");
+            }
+            return d;
+        });
+    }
+</script>
+{% end %}

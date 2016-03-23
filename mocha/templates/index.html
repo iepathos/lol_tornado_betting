@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+<style>
+    .navbar {
+        background:rgba(0,0,0,0.85);
+    }
+
+
+    html, body {
+        background-color: #001a33;
+        color: #eee;
+    }
+
+    ul#matches { 
+        list-style: none
+    }
+    ul#players li {
+        display:inline;
+    }
+
+    .jumbotron {
+        background-color: #403880;
+        color: white;
+    }
+
+    .top {
+        background-color: #9900cc;
+    }
+
+    .bottom {
+        background-color: #0000cc;
+    }
+
+    .wagerForm {
+        position: relative;
+        right: -10px;
+        bottom: -125px;
+    }
+</style>
+{% end %}
+
+{% block content %}
+<nav class="navbar navbar-inverse navbar-fixed-top">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="#">DraftRace</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li class='active'><a href="">You Have <b id='draftPoints'>{{ draft_points }}</b> Draft Points Available</a></li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <!--<li><a href="/wagers">Wagers</a></li>-->
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Account <span class="caret"></span></a>
+          <ul class="dropdown-menu">
+            <li><a href="/logout">Logout</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div>
+</nav>
+
+
+<div class="container">
+    <br><br>
+    <div class="jumbotron" id='welcomePrompt'>
+        <p>Hi {{ current_user }},</p>
+
+        <p>Welcome to the after party.  You'll find spectator gaming for adults here.  We're giving you 5,000 draft points to play with just for signing up.  We're going to start tracking your League of Legends game stats and award you with additional draft points as you win more League matches now.  The best way to make more draft points is to win with wagers on games.</p>
+
+        <p>Yours Truly, <br>
+        Mocha Dick</p>
+    </div>
+</div>
+
+<div class="col-md-12">
+<ul>
+    <h1>Outpick</h1>
+    <p>Wager your draft points as you like on the team you think will win based on the champion picks.  Rack up some draft points and unlock the ability to start making wagers on professional tournament games for greater rewards.  Know some good players?  Save enough draft points to purchase career contracts on some of them and you'll earn draft points everytime they win.</p>
+</ul>
+<div class='matches'>
+    <ul id='matches'>
+        {% for match in featured_matches %}
+            <li class='col-md-10'>
+                <h2>
+                    {% if match['gameMode'] == 'ARAM' %}ARAM
+                    {% elif match['gameMode'] == 'CLASSIC' %}Classic Summoner's Rift
+                    {% else %}{{ match['gameMode'] }}{% end %}
+                </h2>
+                <ul id='players'>
+                    {% for idx, player in enumerate(match['participants']) %}
+                        <li class='col-md-2 {% if idx <= 4 %}top{% else %}bottom{% end %}'>
+                        <img src="https://ddragon.leagueoflegends.com/cdn/6.5.1/img/champion/{{ champions(player['championId']) }}.png " alt="" width='100px'>
+                        
+                        <div class="summonerSpells">
+                            <img src="https://ddragon.leagueoflegends.com/cdn/6.5.1/img/spell/{{ spells(player['spell1Id']) }}.png " alt="" width='50px' class='pull-left'>
+                            <img src="https://ddragon.leagueoflegends.com/cdn/6.5.1/img/spell/{{ spells(player['spell2Id']) }}.png " alt="" width='50px'>
+                        </div>
+                        
+                        </li>
+                        {% if idx == 4 %}
+                            <h3 class='col-md-12'>VS</h3>
+                        {% end %}
+                    {% end %}
+                </ul>
+
+                <div class='matchWager row'>
+                    <form class="wagerForm" action="/make_wager" method='post' id="{{ match['gameId'] }}">
+                        <input type="hidden" name='match' value='{{ match['gameId'] }}'>
+                        Wager: <br> 100 <input type="radio" name='points' value='100'>
+                               300 <input type="radio" name='points' value='300'>
+                               500 <input type="radio" name='points' value='500'>
+                               <br>
+                        On Top Team to win: <input type="radio" name='team' value='Top'> <br>
+                        On Bottom Team to win: <input type="radio" name='team' value='Bottom'> <br>
+                        <input type="button" value='Wager' class='btn btn-success wagerBtn'>
+                        <b class='wagerStatus'></b>
+                    </form>
+                </div>
+            </li>
+        {% end %}
+    </ul>
+</div>
+</div>
+{% end %}
+
+{% block extra_js %}
+<script type='text/javascript'>
+    $(document).ready(function(){
+        setTimeout(update_matches, 15000);
+        setTimeout(update_draft_points_recursive, 20000);
+        setTimeout(slideOutWelcome, 20000);
+    });
+
+    function slideOutWelcome(){
+        $( "#welcomePrompt" ).slideUp( "slow", function() {
+            // Animation complete.
+        });
+    }
+    
+
+    $(document).on("click", "input.wagerBtn" , function() {
+        // make sure a wager and a team are selected
+        var form_id = $(this).parent().attr('id');
+        var team = $('#'+form_id+' input[name=team]').val();
+        var points = $('#'+form_id+' input[name=points]').val();
+        var availablePoints = $('#draftPoints');
+        var button = $(this)
+        if (points != "" && points != null) {
+            if (points <= availablePoints) {
+                if (team != "" && team != null) {
+                    $(this).prop('disabled', true);
+                    // console.log($(this).parent().serialize());
+                    $.ajax( {
+                      type: "POST",
+                      url: "/make_wager",
+                      data: $(this).parent().serialize(),
+                      success: function( data ) {
+                        d = JSON.parse(data);
+                        if (d.status == 'success') {
+                            $('#'+form_id+' .wagerStatus').html("Wager placed!");
+                            setTimeout(function () { button.parent().parent().parent().hide(); }, 500); 
+                            update_draft_points();
+                        } else {
+                            alert("Failed to place wager");
+                        }
+                      }
+                    });
+                } else {
+                    alert("Select the team you wager will win");
+                }
+            } else {
+                alert('Not enough draft points available!');
+            }
+        } else {
+            alert("Select how many draft points you want to wager");
+        }
+        
+    });
+
+    function update_matches() {
+        // retrieve new matches
+        console.log('Updating featured matches');
+        $.ajax({
+            type: 'GET',
+            dataType: 'html',
+            url: '/featured',
+            success: function(data) {
+                $( ".matches" ).fadeTo("fast", 0.5, function(){
+                    $(".matches").html(data);
+                    $(".matches").fadeTo("fast", 1, function(){
+                        // console.log('Finished fading matches');
+                    });
+                }); 
+            }
+        });
+        setTimeout(update_matches, 15000);
+    }
+
+    function update_draft_points() {
+        console.log("Updating draft points");
+        $.ajax({
+            type: 'GET',
+            url: '/points',
+            success: function(data) {
+                d = JSON.parse(data);
+                $("#draftPoints").html(d['draft_points']);
+            }
+        });
+    }
+
+    function update_draft_points_recursive(){
+        update_draft_points();
+        setTimeout(update_draft_points_recursive, 20000);
+    }
+</script>
+{% end %}
